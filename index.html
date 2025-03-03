@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Planner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<style>
+body {
+font-family: Arial, sans-serif;
+line-height: 1.6;
+margin: 0;
+padding: 20px;
+background-color: #f4f4f4;
+}
+.container {
+max-width: 800px;
+margin: auto;
+background: white;
+padding: 20px;
+border-radius: 5px;
+box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+h1, h2 {
+color: #333;
+}
+input, button, select {
+margin: 10px 0;
+padding: 10px;
+width: 100%;
+box-sizing: border-box;
+}
+button {
+background-color: #4CAF50;
+color: white;
+border: none;
+cursor: pointer;
+}
+button:hover {
+background-color: #45a049;
+}
+ul {
+17
+list-style-type: none;
+padding: 0;
+}
+li {
+background: #f4f4f4;
+margin: 5px 0;
+padding: 10px;
+border-radius: 3px;
+}
+.progress-bar, .time-remaining-bar {
+width: 100%;
+background-color: #e0e0e0;
+padding: 3px;
+border-radius: 3px;
+box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
+margin-bottom: 10px;
+}
+.progress-bar-fill {
+display: block;
+height: 22px;
+background-color: #659cef;
+border-radius: 3px;
+transition: width 500ms ease-in-out;
+}
+.time-remaining-fill {
+display: block;
+height: 22px;
+background-color: #ff9800;
+border-radius: 3px;
+transition: width 500ms ease-in-out;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Study Planner</h1>
+<h2>Add Subject</h2>
+<input type="text" id="subjectName" placeholder="Subject Name">
+<button id="addSubjectBtn">Add Subject</button>
+<h2>Subjects</h2>
+<ul id="subjectList"></ul>
+<h2>Add Study Session</h2>
+18
+<select id="subjectSelect"></select>
+<input type="datetime-local" id="studyTime">
+<input type="number" id="studyDuration" placeholder="Duration (minutes)">
+<button id="addStudySessionBtn">Add Study Session</button>
+<h2>Upcoming Study Sessions</h2>
+<ul id="studySessionList"></ul>
+<h2>Overall Progress</h2>
+<div class="progress-bar">
+<span class="progress-bar-fill" style="width: 0%;">0%</span>
+</div>
+<h2>Time Remaining</h2>
+<div class="time-remaining-bar">
+<span class="time-remaining-fill" style="width: 100%;">No active session</span>
+</div>
+</div>
+<script>
+let subjects = [];
+let studySessions = [];
+let completedSessions = [];
+function addSubject() {
+const subjectName = document.getElementById('subjectName').value;
+if (subjectName) {
+subjects.push(subjectName);
+updateSubjectList();
+document.getElementById('subjectName').value = '';
+}
+}
+function updateSubjectList() {
+const subjectList = document.getElementById('subjectList');
+const subjectSelect = document.getElementById('subjectSelect');
+subjectList.innerHTML = '';
+subjectSelect.innerHTML = '';
+subjects.forEach(subject => {
+subjectList.innerHTML += <li>${subject}</li>;
+subjectSelect.innerHTML += <option value="${subject}">${subject}</option>;
+});
+}
+function addStudySession() {
+19
+const subject = document.getElementById('subjectSelect').value;
+const time = document.getElementById('studyTime').value;
+const duration = document.getElementById('studyDuration').value;
+if (subject && time && duration) {
+studySessions.push({ subject, time, duration: parseInt(duration) });
+updateStudySessionList();
+setReminder({ subject, time, duration });
+}
+}
+function updateStudySessionList() {
+const studySessionList = document.getElementById('studySessionList');
+studySessionList.innerHTML = '';
+studySessions.sort((a, b) => new Date(a.time) - new Date(b.time));
+studySessions.forEach((session, index) => {
+studySessionList.innerHTML += `
+<li>
+${session.subject} - ${moment(session.time).format('MMMM Do YYYY, h:mm a')}
+(${session.duration} minutes)
+<button onclick="completeSession(${index})">Complete</button>
+</li>`;
+});
+updateProgress();
+updateTimeRemaining();
+}
+function setReminder({ subject, time, duration }) {
+const now = new Date().getTime();
+const studyTime = new Date(time).getTime();
+const timeUntilStudy = studyTime - now;
+if (timeUntilStudy > 0) {
+setTimeout(() => {
+alert(Time to study ${subject} for ${duration} minutes!);
+}, timeUntilStudy);
+}
+}
+function completeSession(index) {
+const completedSession = studySessions.splice(index, 1)[0];
+completedSessions.push(completedSession);
+updateStudySessionList();
+}
+function updateProgress() {
+const now = new Date();
+20
+let totalMinutes = 0;
+let completedMinutes = 0;
+studySessions.forEach(session => {
+totalMinutes += session.duration;
+const sessionStart = new Date(session.time);
+const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60000);
+if (now > sessionEnd) {
+completedMinutes += session.duration;
+} else if (now > sessionStart) {
+completedMinutes += (now - sessionStart) / 60000;
+}
+});
+completedSessions.forEach(session => {
+totalMinutes += session.duration;
+completedMinutes += session.duration;
+});
+const completedPercentage = totalMinutes ? (completedMinutes / totalMinutes) * 100 : 0;
+const progressBar = document.querySelector('.progress-bar-fill');
+progressBar.style.width = ${completedPercentage}%;
+progressBar.textContent = ${Math.round(completedPercentage)}%;
+}
+function updateTimeRemaining() {
+const now = new Date();
+const timeRemainingBar = document.querySelector('.time-remaining-fill');
+// Find the current or next session
+const currentOrNextSession = studySessions.find(session => {
+const sessionStart = new Date(session.time);
+const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60000);
+return now < sessionEnd;
+});
+if (currentOrNextSession) {
+const sessionStart = new Date(currentOrNextSession.time);
+const sessionEnd = new Date(sessionStart.getTime() + currentOrNextSession.duration * 60000);
+let remainingPercentage;
+let remainingText;
+if (now < sessionStart) {
+21
+// Session hasn't started yet
+const totalWaitTime = sessionStart - now;
+const remainingWaitTime = sessionStart - now;
+remainingPercentage = (remainingWaitTime / totalWaitTime) * 100;
+remainingText = ${Math.ceil(remainingWaitTime / 60000)} min until start;
+} else {
+// Session is in progress
+const totalSessionTime = sessionEnd - sessionStart;
+const remainingSessionTime = sessionEnd - now;
+remainingPercentage = (remainingSessionTime / totalSessionTime) * 100;
+remainingText = ${Math.ceil(remainingSessionTime / 60000)} min remaining;
+}
+timeRemainingBar.style.width = ${remainingPercentage}%;
+timeRemainingBar.textContent = remainingText;
+} else {
+timeRemainingBar.style.width = '100%';
+timeRemainingBar.textContent = 'No active session';
+}
+}
+// Add event listeners
+document.getElementById('addSubjectBtn').addEventListener('click', addSubject);
+document.getElementById('addStudySessionBtn').addEventListener('click', addStudySession);
+// Update progress and time remaining every minute
+setInterval(() => {
+updateProgress();
+updateTimeRemaining();
+}, 60000);
+// Initial update
+updateTimeRemaining();
+</script>
+</body>
+</html>
