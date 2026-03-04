@@ -1,0 +1,154 @@
+import java.io.*;
+import java.util.*;
+
+class Task {
+    String title;
+    String subject;
+    String deadline;
+    boolean completed;
+
+    public Task(String title, String subject, String deadline, boolean completed) {
+        this.title = title;
+        this.subject = subject;
+        this.deadline = deadline;
+        this.completed = completed;
+    }
+
+    public String toFileString() {
+        return title + "," + subject + "," + deadline + "," + completed;
+    }
+
+    public static Task fromFileString(String line) {
+        String[] parts = line.split(",");
+        return new Task(parts[0], parts[1], parts[2], Boolean.parseBoolean(parts[3]));
+    }
+
+    @Override
+    public String toString() {
+        return "Title: " + title +
+               " | Subject: " + subject +
+               " | Deadline: " + deadline +
+               " | Completed: " + completed;
+    }
+}
+
+public class StudyPlanner {
+
+    static ArrayList<Task> tasks = new ArrayList<>();
+    static final String FILE_NAME = "data.txt";
+    static Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        loadTasks();
+
+        while (true) {
+            System.out.println("\n===== STUDY PLANNER =====");
+            System.out.println("1. Add Task");
+            System.out.println("2. View Tasks");
+            System.out.println("3. Mark Task as Completed");
+            System.out.println("4. Delete Task");
+            System.out.println("5. Exit");
+            System.out.print("Choose option: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (choice) {
+                case 1:
+                    addTask();
+                    break;
+                case 2:
+                    viewTasks();
+                    break;
+                case 3:
+                    markCompleted();
+                    break;
+                case 4:
+                    deleteTask();
+                    break;
+                case 5:
+                    saveTasks();
+                    System.out.println("Exiting... Data Saved.");
+                    return;
+                default:
+                    System.out.println("Invalid choice!");
+            }
+        }
+    }
+
+    static void addTask() {
+        System.out.print("Enter Title: ");
+        String title = scanner.nextLine();
+
+        System.out.print("Enter Subject: ");
+        String subject = scanner.nextLine();
+
+        System.out.print("Enter Deadline (dd-mm-yyyy): ");
+        String deadline = scanner.nextLine();
+
+        tasks.add(new Task(title, subject, deadline, false));
+        System.out.println("Task Added Successfully!");
+    }
+
+    static void viewTasks() {
+        if (tasks.isEmpty()) {
+            System.out.println("No tasks available.");
+            return;
+        }
+
+        for (int i = 0; i < tasks.size(); i++) {
+            System.out.println((i + 1) + ". " + tasks.get(i));
+        }
+    }
+
+    static void markCompleted() {
+        viewTasks();
+        System.out.print("Enter task number to mark completed: ");
+        int index = scanner.nextInt() - 1;
+
+        if (index >= 0 && index < tasks.size()) {
+            tasks.get(index).completed = true;
+            System.out.println("Task marked as completed!");
+        } else {
+            System.out.println("Invalid task number!");
+        }
+    }
+
+    static void deleteTask() {
+        viewTasks();
+        System.out.print("Enter task number to delete: ");
+        int index = scanner.nextInt() - 1;
+
+        if (index >= 0 && index < tasks.size()) {
+            tasks.remove(index);
+            System.out.println("Task deleted!");
+        } else {
+            System.out.println("Invalid task number!");
+        }
+    }
+
+    static void saveTasks() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+            for (Task task : tasks) {
+                writer.write(task.toFileString());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving tasks.");
+        }
+    }
+
+    static void loadTasks() {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                tasks.add(Task.fromFileString(line));
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading tasks.");
+        }
+    }
+}
